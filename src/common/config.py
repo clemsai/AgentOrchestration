@@ -4,6 +4,14 @@ import os
 import json
 from typing import Any, Dict, Optional
 
+# Maximum allowed configuration file size in bytes (10 MB).
+MAX_CONFIG_SIZE = 10 * 1024 * 1024
+
+
+class ConfigSizeError(Exception):
+    """Raised when a configuration file exceeds the maximum allowed size."""
+    pass
+
 
 class Config:
     def __init__(self, config_path: Optional[str] = None):
@@ -13,6 +21,12 @@ class Config:
         self._load_env_overrides()
 
     def load(self, path: str) -> None:
+        file_size = os.path.getsize(path)
+        if file_size > MAX_CONFIG_SIZE:
+            raise ConfigSizeError(
+                f"Config file {path} is {file_size} bytes, "
+                f"which exceeds the maximum allowed size of {MAX_CONFIG_SIZE} bytes"
+            )
         with open(path) as f:
             self._data = json.load(f)
 

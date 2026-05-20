@@ -1,7 +1,6 @@
 """CLI entry point for the agent orchestrator."""
 
 import argparse
-import json
 import os
 import sys
 
@@ -19,26 +18,6 @@ def print_data(message: str) -> None:
     print(message, file=sys.stdout)
 
 
-def _validate_manifest(path: str) -> dict:
-    """Validate a manifest file and return its parsed content.
-
-    Raises SystemExit on validation failure.
-    """
-    if not os.path.exists(path):
-        print_error(f"manifest path does not exist: {path}")
-        sys.exit(1)
-    try:
-        with open(path) as f:
-            data = json.load(f)
-    except json.JSONDecodeError as exc:
-        print_error(f"manifest is not valid JSON: {exc}")
-        sys.exit(1)
-    if not isinstance(data, dict):
-        print_error("manifest must be a JSON object")
-        sys.exit(1)
-    return data
-
-
 def cli():
     parser = argparse.ArgumentParser(description="Agent Orchestrator CLI")
     parser.add_argument("--config", "-c", help="Path to config file")
@@ -51,11 +30,6 @@ def cli():
 
     deploy_parser = subparsers.add_parser("deploy", help="Deploy an agent")
     deploy_parser.add_argument("manifest", help="Path to agent manifest file")
-    deploy_parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Validate the manifest without deploying",
-    )
 
     status_parser = subparsers.add_parser("status", help="Show agent status")
     status_parser.add_argument("--watch", "-w", action="store_true", help="Watch mode")
@@ -74,11 +48,10 @@ def cli():
     if args.command == "init":
         print_data(f"Initializing project: {args.name}")
     elif args.command == "deploy":
-        manifest_data = _validate_manifest(args.manifest)
-        if args.dry_run:
-            print_data(f"Dry run: manifest {args.manifest} is valid")
-        else:
-            print_data(f"Deploying agent from manifest: {args.manifest}")
+        if not os.path.exists(args.manifest):
+            print_error(f"manifest path does not exist: {args.manifest}")
+            sys.exit(1)
+        print_data(f"Deploying agent from manifest: {args.manifest}")
     elif args.command == "status":
         print_data("Checking agent status...")
     elif args.command == "logs":
